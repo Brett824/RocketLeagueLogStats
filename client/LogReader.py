@@ -1,19 +1,18 @@
-
-from datetime import datetime
-from dateutil.relativedelta import relativedelta
+from datetime import datetime, timedelta
 import re
 import json
 import os
 import glob
+import argparse
 
 
 def calculateTime(start_time, delta):
     seconds, centiseconds = [int(x) for x in delta.split(".")]
-    return start_time + relativedelta(seconds=seconds, microseconds=centiseconds*10000)
+    return start_time + timedelta(seconds=seconds, microseconds=centiseconds*10000)
 
 
 def readLog(data):
-    """BULK OF THE WORK -- RETURNS A JSON OF GAMES PLAYED WITH SKILL GAINS/LOSSES """
+    """BULK OF THE WORK -- RETURNS A LIST OF GAMES PLAYED WITH SKILL GAINS/LOSSES """
     data = data.splitlines()
     start_time = datetime.strptime(data[0], 'Log: Log file open, %m/%d/%y %H:%M:%S')
     matches = []
@@ -33,13 +32,20 @@ def readLog(data):
 
 
 def readLogs(logs):
-    return json.dumps([matches for log in logs for matches in readLog(log)])
+    return json.dumps([match for log in logs for match in readLog(log)])
 
 
-def loadLogs(path=None):
-    path = path or os.environ['USERPROFILE'] + '/Documents/My Games/Rocket League/TAGame/Logs/'
+def getLogs(path=None):
+    path = path or os.environ.get('USERPROFILE', '') + '/Documents/My Games/Rocket League/TAGame/Logs/'
     logs = []
     for fn in glob.glob(path + "*.log"):
         with open(fn, 'r') as f:
             logs.append(f.read())
     return logs
+
+
+if __name__ == '__main__':
+    parser = argparse.ArgumentParser(description='Read your Rocket League logs for post-match stats')
+    parser.add_argument('logPath', nargs='?', help='Full filepath to the logs')
+    args = parser.parse_args()
+    print readLogs(getLogs(args.logPath))
